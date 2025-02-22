@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { fetchNews, fetchPortals } from "@/lib/api";
 import Image from "next/image";
+import MaxWidthWrapper from "./MaxWidthWrapper";
+import Link from "next/link";
 
 interface Nyhet {
   id: string;
@@ -10,6 +12,7 @@ interface Nyhet {
     files?: Array<{ url?: string; caption?: string }>;
   }>;
   title?: string;
+  category?: string;
 }
 
 interface Portal {
@@ -26,6 +29,7 @@ export const Nyhetskort: React.FC<NyhetskortProps> = ({ portalId }) => {
   const [valgtPortalId, setValgtPortalId] = useState<string | null>(portalId);
   const [nyheter, setNyheter] = useState<Nyhet[]>([]);
 
+  // Henter portaler ved oppstart
   useEffect(() => {
     async function hentPortaler() {
       try {
@@ -38,37 +42,45 @@ export const Nyhetskort: React.FC<NyhetskortProps> = ({ portalId }) => {
     hentPortaler();
   }, []);
 
+  // Henter nyheter basert på valgt portal
   useEffect(() => {
-    if (valgtPortalId) {
-      async function hentNyheter() {
+    async function hentNyheter() {
+      if (valgtPortalId) {
         try {
-          const data = await fetchNews(valgtPortalId as string);
+          const data = await fetchNews(valgtPortalId);
           setNyheter(data);
         } catch (error) {
           console.error("Feil ved henting av nyheter:", error);
         }
       }
-      hentNyheter();
     }
+    hentNyheter();
   }, [valgtPortalId]);
 
   return (
     <div>
-      <div className="mb-4">
-        <h2 className="text-2xl font-bold">Velg en portal</h2>
-        <select
-          onChange={(e) => setValgtPortalId(e.target.value)}
-          className="mt-2 p-2 border rounded"
-        >
-          <option value="">Velg en portal</option>
+      <MaxWidthWrapper> 
+      {/* 🔹 Portalvalg */}
+      <div className="w-full overflow-x-auto border-b border-gray-300 bg-white sticky top-0 z-10 p-4">
+        <h2 className="text-xl font-semibold mb-2">Velg en nyhetsportal</h2>
+        <div className="flex gap-4 whitespace-nowrap">
           {portaler.map((portal) => (
-            <option key={portal._id} value={portal._id}>
+            <button
+              key={portal._id}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                valgtPortalId === portal._id
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+              onClick={() => setValgtPortalId(portal._id)}
+            >
               {portal.name}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
+      {/* 🔹 Nyhetsgrid */}
       <div className="grid grid-cols-3 gap-6 p-6 auto-rows-auto grid-flow-dense">
         {nyheter.length === 0 ? (
           <p>Ingen nyheter tilgjengelig.</p>
@@ -77,20 +89,12 @@ export const Nyhetskort: React.FC<NyhetskortProps> = ({ portalId }) => {
             const bildeObj = nyhet.content.find((item) => item.type === "PICTURES");
             const bilde = bildeObj?.files?.[0];
 
-            // Dynamiske grid-klasser basert på posisjon
             let gridClass = "col-span-1 row-span-1 h-auto"; // Standard størrelse
-
-            if (index % 6 === 0) {
-              gridClass = "col-span-3 row-span-2 h-auto"; // Store nyheter
-            } else if (index % 5 === 0) {
-              gridClass = "col-span-2 row-span-2 h-auto"; // Medium store nyheter
-            }
+            if (index % 6 === 0) gridClass = "col-span-3 row-span-2 h-auto";
+            else if (index % 5 === 0) gridClass = "col-span-2 row-span-2 h-auto";
 
             return (
-              <div
-                key={nyhet.id || nyhet.title}
-                className={`bg-white shadow-lg rounded-lg p-4 hover:shadow-xl transition-all flex flex-col ${gridClass}`}
-              >
+              <Link key={nyhet.id} href={`/nyhet/${nyhet.id}`} className={`bg-white shadow-lg rounded-lg p-4 hover:shadow-xl transition-all flex flex-col ${gridClass}`}>
                 {bilde?.url && (
                   <Image
                     src={bilde.url}
@@ -101,11 +105,12 @@ export const Nyhetskort: React.FC<NyhetskortProps> = ({ portalId }) => {
                   />
                 )}
                 <h2 className="text-xl font-bold line-clamp-3">{nyhet.title || "Ingen tittel"}</h2>
-              </div>
+              </Link>
             );
           })
         )}
       </div>
+      </MaxWidthWrapper>
     </div>
   );
 };

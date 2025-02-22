@@ -28,3 +28,19 @@ export async function fetchNews(portalId: string) {
   const data = await res.json();
   return data.docs; // Returnerer listen over nyhetsartikler
 }
+
+export async function fetchSingleNews(newsId: string) {
+   const isValidId = /^[a-fA-F0-9]{24}$/.test(newsId);
+   if (!isValidId) {
+     throw new Error("Ugyldig nyhets-ID. Må være en 24-tegns hex-streng.");
+   }
+ 
+   const res = await fetch(`https://breaking-api.alpha.tv2.no/v1/public/posts/${newsId}`);
+   
+   if (!res.ok) {
+     throw new Error(`Kunne ikke hente nyhet. Status: ${res.status}`);
+   }
+ 
+   return res.json();
+ }
+ 
